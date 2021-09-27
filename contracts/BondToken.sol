@@ -324,7 +324,7 @@ contract Bond is ERC1155 {
     // Functions for corporate actions
     
     // In order to be able to execute corporate actions, the function
-    // returnInvestorLength
+    // returnInvestorLength returns the amount of investors for a specific tokenID
 
     function returnInvestorLength(
         uint _tokenID)
@@ -336,6 +336,11 @@ contract Bond is ERC1155 {
         return Investor[_tokenID].Investors.length;
     }
     
+    // In order to be able to execute corporate actions, the function
+    // returnInvestorAddress returns the address of a specific investor
+    // and if the investor's bond token amount is equal to or higher than 0
+    // by accessing the investor list of a tokenID with an _index.
+
     function returnInvestorAddress(
         uint _tokenID,
         uint _index)
@@ -352,6 +357,13 @@ contract Bond is ERC1155 {
             Investor[_tokenID].isInvestor[Investor[_tokenID].Investors[_index]]); 
     }
     
+    // The IssuerAddress can payCoupon for a specific tokenID
+    // to a specific investor address _to of a specific amount
+    // in WEI.
+    // The function checks whether the msg.value has the intended
+    // value, then transfers the amount to the investor address _to.
+    // For documentation, the function emits a event CouponPaid.
+
     function payCoupon(
         uint _tokenID,
         address payable _to,
@@ -375,9 +387,20 @@ contract Bond is ERC1155 {
     }
     
     // Redemption Buy Back
-    
+    // To get a redemption, the investor has to
+    // send the bond tokens back to the IssuerAddress
+
     mapping(uint => mapping(address => uint256)) private BuyBack;
     
+    // Via the function redemptionBuyBack, an investor
+    // or an authorized operator may send the tokens of 
+    // a specific tokenID back to the IssuerAddress
+    // after the bond is matured. The function automatically
+    // retrieves the balance from a delegateCall of the CSR
+    // contract and then transfers the balance.
+    // The CSR gets updated, the amount gets documented
+    // and the event RedemptionBuyBack gets emitted.
+
     function redemptionBuyBack(
         address _from,
         uint _tokenID)
@@ -418,7 +441,11 @@ contract Bond is ERC1155 {
             block.timestamp
             );
     }
-    
+
+    // Via the returnRedemptionPTP, the IssuerAddress
+    // may get information about the price to pay for
+    // a specific tokenID and investor address.
+
     function returnRedemptionPTP(
         uint _tokenID,
         address _to)
@@ -432,7 +459,14 @@ contract Bond is ERC1155 {
             BuyBack[_tokenID][_to]) 
             * (10**18);    
     }
-    
+
+    // After the investors sent the bond tokens back to
+    // the IssuerAddress, the redemption follows. For a 
+    // specific tokenID and investor address _to, the
+    // IssuerAddress transfers the value of the bond tokens
+    // back to the investor. The function checks the msg.value
+    // and emits the event RedemptionPaid.
+
     function payRedemtion(
         uint _tokenID,
         address payable _to)
@@ -462,6 +496,9 @@ contract Bond is ERC1155 {
             );
     }
     
+    // After the bond matured, the IssuerAddress may
+    // burn the bond tokens in balance.
+
     function burn(
         uint _tokenID)
         public
@@ -474,6 +511,10 @@ contract Bond is ERC1155 {
     
     // Functions for investors
     
+    // The function returnPriceToPayEther 
+    // returns the price to pay in Ether
+    // for a specific tokenID and amount.
+
     function returnPriceToPayETHER(
         uint _tokenID, 
         uint _amount)
@@ -483,7 +524,11 @@ contract Bond is ERC1155 {
         {
         return(TokenData[_tokenID].parValueETHER * _amount);    
     }
-    
+
+    // The function returnPriceToPayEUR 
+    // returns the price to pay in euro
+    // for a specific tokenID and amount.
+
     function returnPriceToPayEUR(
         uint _tokenID, 
         uint _amount)
@@ -494,6 +539,20 @@ contract Bond is ERC1155 {
         return(TokenData[_tokenID].parValueEUR * _amount);    
     }
     
+    // The function buyTokensEther allows
+    // an investor to purchase the bond with
+    // a specific tokenID and amount via sending
+    // ether to the IssuerAddress. The tokenState
+    // needs to be equal to 0, thus being pre-
+    // settlement state. The msg.sender needs to 
+    // be whitelisted, and the msg.value needs to
+    // be equal to the price to pay in Ether.
+    // By sending Ether, the function transfers
+    // the purchased bond tokens to the investor.
+    // Both the Investor and the tokenData struct get 
+    // updated, as well as the CSR. Finally, the event
+    // TokenBought gets emitted. 
+
     function buyTokensETHER(
         uint _tokenID, 
         uint _amount)
@@ -547,6 +606,20 @@ contract Bond is ERC1155 {
         return true;
     }
     
+    // The function buyTokensEUR allows
+    // an investor to purchase the bond with
+    // a specific tokenID and amount via sending
+    // euro to the IssuerAddress. The tokenState
+    // needs to be equal to 0, thus being pre-
+    // settlement state. The msg.sender needs to 
+    // be whitelisted, and the msg.value needs to
+    // be equal to the price to pay in Ether.
+    // By sending euro, the function transfers
+    // the purchased bond tokens to the investor.
+    // Both the Investor and the tokenData struct get 
+    // updated, as well as the CSR. Finally, the event
+    // TokenBought gets emitted. 
+
     function buyTokensEUR(
         uint _tokenID, 
         uint _amount)
@@ -600,22 +673,18 @@ contract Bond is ERC1155 {
     }
     
     // Functions for token transfers
-    
-    function checkMaturityDate(
-        uint256 [] memory _tokenIDs
-        )
-        internal
-        view
-        returns(bool)
-        {
-        bool check = true;
-        for (uint i=0; i<_tokenIDs.length; i++) {
-            if (block.timestamp > TokenData[_tokenIDs[i]].maturityDate) {
-                check = false;
-            }
-        }
-        return check;
-    }
+
+    // The function safeTransferFrom
+    // allows the owner of bond tokens
+    // or an authorized operator to
+    // transfer tokens of a specific
+    // amount of a specific id to 
+    // another investor to, who needs 
+    // to be whitelisted. The transfer
+    // is only allowed before maturity.
+    // InvestorStruct and the CSR get
+    // updated and the event TokenTransferred
+    // gets emitted.
     
     function safeTransferFrom(
         address from,
@@ -670,6 +739,12 @@ contract Bond is ERC1155 {
     
     // Forced transfers by regulatory authority
     
+    // The regulator can request a forced transfer
+    // of a specific _investor, _tokenID and _amount.
+    // The request is then stored within the struct
+    // RegulatoryRequests and the event
+    // RegulatoryForcedTransfer gets emitted.
+
      function requestForcedTransfer(
          uint _tokenID,
          address _investor,
@@ -689,6 +764,14 @@ contract Bond is ERC1155 {
              _amount
              );
      }
+    
+    // The IssuerAddress is able to execute
+    // the id of a requested forced transfer.
+    // The IssuerAddress gets a temporary 
+    // EmergencyApprocal and transfers the tokens
+    // from the _investor.
+    // The CSR gets updated and the event
+    // ForcedTokenTransfered gets emitted.
     
     function forcedTransfer(
         uint _id)
