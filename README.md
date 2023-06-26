@@ -1,3 +1,7 @@
-# BondTokenMasterThesis
+# 
+Bond Token Issuance with ERC-1155 Smart Contracts
 
-This repository holds the final code of the bond token prototype which i built during my masters thesis. This code should not advance further within this project, but was rather cloned and further developed in a different repo!
+This project is derived from my master thesis, in which I designed and programmed an Ethereum-based bond token prototype.
+As this code represents the bond token prototype I build during my masters thesis, the codebase should stay the same.
+
+Instead, the project will be developed further in a different repository!
