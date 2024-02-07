@@ -8,12 +8,8 @@ import "./SecuritiesRegister.sol";
 
 contract KycContract is Ownable {
     
-    // Contracts
-    
     Bond BTC;
     CSRContract CSR;
-    
-    // Functions for contract management
     
     function setBondTokenContract(
         address _addr)
@@ -29,8 +25,6 @@ contract KycContract is Ownable {
         {
         CSR = CSRContract(_addr);
     }
-    
-    // Modifier
     
     modifier onlyKycProvider {
         require(
@@ -48,11 +42,7 @@ contract KycContract is Ownable {
         _;
     }
     
-    // Entities
-    
     mapping(address => bool) KycProvider;
-    
-    // Functions for entity management
     
     function setKycProvider(
         address _kycProvider)
@@ -71,16 +61,12 @@ contract KycContract is Ownable {
         KycProvider[_kycProvider] = _update;
     }
     
-    // Variables
-    
     mapping(address => InvestorInfo) private Whitelist;
     
     struct InvestorInfo {
         bool whitelisted;
         uint investorType; // 0 stands for retail, 1 for institutional
     }
-    
-    // Functions
     
     function setKycCompleted(
         address _investor,
