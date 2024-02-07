@@ -9,8 +9,6 @@ import "./KnowYourCustomer.sol";
 
 contract CSRContract is Ownable, DateTime {
     
-    // Events
-    
     event TokenDataEntry (
         uint indexed _tokenID, 
         uint _volume, 
@@ -56,12 +54,8 @@ contract CSRContract is Ownable, DateTime {
         uint _amount
         );
     
-    // Contracts
-    
     Bond BTC;
     KycContract KYC;
-    
-    // Functions for contract management
     
     function setBondTokenContract(
         address _addr)
@@ -77,8 +71,6 @@ contract CSRContract is Ownable, DateTime {
         {
         KYC = KycContract(_addr);
     }
-    
-    // Modifier
     
     modifier onlyRegistrar {
         require(
@@ -105,12 +97,8 @@ contract CSRContract is Ownable, DateTime {
         _;
     }
     
-    // Entities
-    
     address public Registrar;
     address public Regulator;
-    
-    // Functions for entity management
     
     function setRegistrar(
         address _addr)
@@ -152,8 +140,6 @@ contract CSRContract is Ownable, DateTime {
         Regulator = _addr;
     }
     
-    // Crypto Securities Register
-    
     mapping(uint => CSRStruct) private SecuritiesRegister;
     
     struct CSRStruct {
@@ -192,8 +178,6 @@ contract CSRContract is Ownable, DateTime {
         bytes32 [] OtherDisposalRestrictions;
         bytes32 [] LegalCapacityOwner;
     }
-    
-    // Functions for CSR management
     
     function setDates(
         uint _tokenID, 
@@ -363,8 +347,6 @@ contract CSRContract is Ownable, DateTime {
         SecuritiesRegister[_tokenID].regulatorApproval = true;
     }
     
-    // View functions
-    
     function balanceOf(
         uint _tokenID, 
         address _addr)
@@ -438,8 +420,6 @@ contract CSRContract is Ownable, DateTime {
             );    
     }
     
-    // Functions for CSR-Update
-    
     function updateCSRbyContractBuy(
         uint _tokenID, 
         address _addr, 
@@ -495,8 +475,6 @@ contract CSRContract is Ownable, DateTime {
             _addr, 
             _amount);
     }
-    
-    // Exemplary functions for changing or deleting data in the register for a specific token (neither complete nor conclusive)
     
     function changeTokenTermSheetProposal(
         uint _tokenID,
