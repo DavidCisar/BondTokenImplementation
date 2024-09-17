@@ -3,9 +3,9 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./BondToken.sol";
+import "./BondTokenContract.sol";
 import "./DateTime.sol";
-import "./KnowYourCustomer.sol";
+import "./KYCContract.sol";
 
 contract CSRContract is Ownable, DateTime {
 
@@ -55,22 +55,23 @@ contract CSRContract is Ownable, DateTime {
         uint _amount
         );
     
-    Bond bondTokenContract;
-    KycContract kycContract;
+    BondTokenContract
+     bondTokenContract;
+    KYCContract kycContract;
     
-    function setBondTokenContract(
+    function setBondTokenContractTokenContract(
         address _addr)
         public
         onlyOwner
         {
-        bondTokenContract = Bond(_addr);
+        bondTokenContract = BondTokenContract(_addr);
     }
     
-    function setKycContract(address _addr)
+    function setKYCContract(address _addr)
         public
         onlyOwner
         {
-        kycContract = KycContract(_addr);
+        kycContract = KYCContract(_addr);
     }
     
     modifier onlyRegistrar {
@@ -91,8 +92,8 @@ contract CSRContract is Ownable, DateTime {
     
     modifier onlyContract {
         require(
-            bondTokenContract == Bond(payable(_msgSender())) || 
-            kycContract == KycContract(_msgSender()), 
+            bondTokenContract == BondTokenContract(payable(_msgSender())) || 
+            kycContract == KYCContract(_msgSender()), 
             "Only a contract can call this function!"
             );
         _;

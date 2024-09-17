@@ -3,12 +3,12 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./BondToken.sol";
-import "./SecuritiesRegister.sol";
+import "./BondTokenContract.sol";
+import "./CSRContract.sol";
 
-contract KycContract is Ownable {
+contract KYCContract is Ownable {
     
-    Bond BTC;
+    BondTokenContract BTC;
     CSRContract CSR;
 
     constructor() Ownable(_msgSender()) {}
@@ -18,7 +18,7 @@ contract KycContract is Ownable {
         public
         onlyOwner
         {
-        BTC = Bond(_addr);
+        BTC = BondTokenContract(_addr);
     }
     
     function setCSRContract(address _addr)
@@ -38,7 +38,7 @@ contract KycContract is Ownable {
     
     modifier onlyContract {
         require(
-            BTC == Bond(_msgSender()) || CSR == CSRContract(_msgSender()), 
+            BTC == BondTokenContract(_msgSender()) || CSR == CSRContract(_msgSender()), 
             "Only a Contract can use this function!"
             );
         _;

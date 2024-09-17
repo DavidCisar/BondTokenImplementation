@@ -6,14 +6,14 @@ import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Burnable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./KnowYourCustomer.sol";
-import "./Documents.sol";
-import "./SecuritiesRegister.sol";
+import "./KYCContract.sol";
+import "./DocumentContract.sol";
+import "./CSRContract.sol";
 
-contract Bond is ERC1155, Ownable {
+contract BondTokenContract is ERC1155, Ownable {
 
     constructor() ERC1155("https://github.com/DavidCisar/Forschungsprojekt/{id}.json") Ownable(_msgSender()) { 
-        issuerAddress = _msgSender();
+        issuerAddress = msg.sender;
     }  
 
     event TokenMinted (
@@ -72,16 +72,16 @@ contract Bond is ERC1155, Ownable {
         uint256 indexed _timestamp
         );
     
-    KycContract KYC;
+    KYCContract KYC;
     CSRContract CSR;
-    DocumentContract Documents;
+    DocumentContract documentContract;
     IERC20 _stableCoin;
 
-    function setKycContract(address _addr)
+    function setKYCContract(address _addr)
         public
         onlyOwner
         {
-        KYC = KycContract(_addr);
+        KYC = KYCContract(_addr);
     }
 
     function setCSRContract(address _addr)
@@ -91,11 +91,11 @@ contract Bond is ERC1155, Ownable {
         CSR = CSRContract(_addr);
     }
 
-    function setDocumentsContract(address _addr)
+    function setDocumentContract(address _addr)
         public
         onlyOwner
         {
-        Documents = DocumentContract(_addr);
+        documentContract = DocumentContract(_addr);
     }
 
     function setStableCoinContract(address _addr)
