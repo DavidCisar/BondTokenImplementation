@@ -1,29 +1,30 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.0;
 
-import "./@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "./BondToken.sol";
 import "./DateTime.sol";
 import "./KnowYourCustomer.sol";
 
 contract CSRContract is Ownable, DateTime {
+
+    constructor() Ownable(_msgSender()) {}
     
     event TokenDataEntry (
         uint indexed _tokenID, 
         uint _volume, 
         uint _parValue, 
         uint _parValueEUR, 
-        uint _coupon, 
-        string _rating, 
+        uint _coupon,
         string _issuer, 
         string _entryType
         );
 
     event TokenDatesEntry (
         uint indexed _tokenID, 
-        uint256 [] _settlementDate, 
-        uint256 [] _maturityDate
+        uint256 _settlementDate, 
+        uint256 _maturityDate
         );
 
     event TermSheetEntry (
@@ -54,27 +55,27 @@ contract CSRContract is Ownable, DateTime {
         uint _amount
         );
     
-    Bond BTC;
-    KycContract KYC;
+    Bond bondTokenContract;
+    KycContract kycContract;
     
     function setBondTokenContract(
         address _addr)
         public
         onlyOwner
         {
-        BTC = Bond(_addr);
+        bondTokenContract = Bond(_addr);
     }
     
     function setKycContract(address _addr)
         public
         onlyOwner
         {
-        KYC = KycContract(_addr);
+        kycContract = KycContract(_addr);
     }
     
     modifier onlyRegistrar {
         require(
-            msg.sender == Registrar, 
+            _msgSender() == Registrar, 
             "You are not authorized!"
             );
         _;
@@ -82,7 +83,7 @@ contract CSRContract is Ownable, DateTime {
     
     modifier onlyRegulator {
         require(
-            msg.sender == Regulator, 
+            _msgSender() == Regulator, 
             "You are not authorized!"
             );
         _;
@@ -90,8 +91,8 @@ contract CSRContract is Ownable, DateTime {
     
     modifier onlyContract {
         require(
-            BTC == Bond(msg.sender) || 
-            KYC == KycContract(msg.sender), 
+            bondTokenContract == Bond(payable(_msgSender())) || 
+            kycContract == KycContract(_msgSender()), 
             "Only a contract can call this function!"
             );
         _;
@@ -143,14 +144,13 @@ contract CSRContract is Ownable, DateTime {
     mapping(uint => CSRStruct) private SecuritiesRegister;
     
     struct CSRStruct {
+        address issuerAddress;
         TermSheet termsheet;
-        InvestorStructure investorstructure;
         uint volume;
         uint parValueETHER;
         uint parValueEUR;
         uint coupon;
         string issuer;
-        string rating;
         string entryType;
         uint256 settlementDate;
         uint256 maturityDate;
@@ -166,11 +166,6 @@ contract CSRContract is Ownable, DateTime {
         string ITIN;
     }
     
-    struct InvestorStructure {
-        uint AmountSingleEntry;
-        uint AmountCollectiveEntry;
-    }
-    
     struct InvestorInformationStruct {
         uint balanceOf;
         bytes32 [] DisposalRestrictions;
@@ -181,8 +176,8 @@ contract CSRContract is Ownable, DateTime {
     
     function setDates(
         uint _tokenID, 
-        uint256 [] memory _settlementDate, 
-        uint256 [] memory _maturityDate)
+        uint256 _settlementDate, 
+        uint256 _maturityDate)
         public
         onlyRegistrar
         {
@@ -190,17 +185,9 @@ contract CSRContract is Ownable, DateTime {
             SecuritiesRegister[_tokenID].regulatorApproval == false
         );
         
-        SecuritiesRegister[_tokenID].settlementDate = toTimestamp(
-            uint16(_settlementDate[0]), 
-            uint8(_settlementDate[1]), 
-            uint8(_settlementDate[2])
-            );
+        SecuritiesRegister[_tokenID].settlementDate = _settlementDate;
 
-        SecuritiesRegister[_tokenID].maturityDate = toTimestamp(
-            uint16(_maturityDate[0]), 
-            uint8(_maturityDate[1]), 
-            uint8(_maturityDate[2])
-            );
+        SecuritiesRegister[_tokenID].maturityDate = _maturityDate;
         
         emit TokenDatesEntry(
             _tokenID, 
@@ -210,12 +197,12 @@ contract CSRContract is Ownable, DateTime {
     }
     
     function setTokenData(
+        address _issuerAddress,
         uint _tokenID,
         uint _volume,
         uint _parValueETHER,
         uint _parValueEUR,
         uint _coupon,
-        string memory _rating,
         string memory _issuer,
         string memory _entryType)
         public
@@ -225,11 +212,11 @@ contract CSRContract is Ownable, DateTime {
             SecuritiesRegister[_tokenID].regulatorApproval == false
         );
         
+        SecuritiesRegister[_tokenID].issuerAddress = _issuerAddress;
         SecuritiesRegister[_tokenID].volume = _volume;
         SecuritiesRegister[_tokenID].parValueETHER = _parValueETHER;
         SecuritiesRegister[_tokenID].parValueEUR = _parValueEUR;
         SecuritiesRegister[_tokenID].coupon = _coupon;
-        SecuritiesRegister[_tokenID].rating = _rating;
         SecuritiesRegister[_tokenID].issuer = _issuer;
         SecuritiesRegister[_tokenID].entryType = _entryType;
         
@@ -239,7 +226,6 @@ contract CSRContract is Ownable, DateTime {
             _parValueETHER,
             _parValueEUR,
             _coupon, 
-            _rating, 
             _issuer, 
             _entryType
             );
@@ -292,17 +278,6 @@ contract CSRContract is Ownable, DateTime {
             );
     }
     
-    function setIssuerInformation(
-        uint _tokenID,
-        string memory _issuer,
-        string memory _rating)
-        public
-        onlyRegistrar
-        {
-        SecuritiesRegister[_tokenID].issuer = _issuer;
-        SecuritiesRegister[_tokenID].rating = _rating;
-    }
-    
     function setInvestorInformation(
         uint [] memory _tokenIDs,
         address _investor,
@@ -347,25 +322,7 @@ contract CSRContract is Ownable, DateTime {
         SecuritiesRegister[_tokenID].regulatorApproval = true;
     }
     
-    function balanceOf(
-        uint _tokenID, 
-        address _addr)
-        external
-        view
-        returns(uint) 
-        {
-        require(
-            msg.sender == _addr || 
-            msg.sender == owner() || 
-            msg.sender == Registrar || 
-            BTC == Bond(msg.sender), 
-            "You are not allowed to view this!"
-        );
-        
-        return SecuritiesRegister[_tokenID].InvestorInformation[_addr].balanceOf;    
-    }
-    
-    function dataComplete(
+    function isDataComplete(
         uint _tokenID)
         external
         view
@@ -406,20 +363,6 @@ contract CSRContract is Ownable, DateTime {
             );     
     }
     
-    function returnTokenDistribution(
-        uint _tokenID)
-        public
-        view
-        returns(
-            uint256 SingleEntryAmount, 
-            uint256 CollectiveEntryAmount)
-        {
-        return (
-            SecuritiesRegister[_tokenID].investorstructure.AmountSingleEntry, 
-            SecuritiesRegister[_tokenID].investorstructure.AmountCollectiveEntry
-            );    
-    }
-    
     function updateCSRbyContractBuy(
         uint _tokenID, 
         address _addr, 
@@ -428,21 +371,13 @@ contract CSRContract is Ownable, DateTime {
         onlyContract
         {
         
-        uint investorType = KYC.returnInvestorType(_addr);
-        
-        SecuritiesRegister[_tokenID].InvestorInformation[_addr].balanceOf += _amount;
-        
-        if (investorType == 0) {
-            SecuritiesRegister[_tokenID].investorstructure.AmountSingleEntry += _amount;
+        if (_addr != SecuritiesRegister[_tokenID].issuerAddress) {
+            SecuritiesRegister[_tokenID].InvestorInformation[_addr].balanceOf += _amount;
         }
-        
-        if (investorType == 1) {
-            SecuritiesRegister[_tokenID].investorstructure.AmountCollectiveEntry += _amount;
-        }
-        
+
         emit ChangeOfRegisterInvestorBalance (
             block.timestamp, 
-            msg.sender, 
+            _msgSender(), 
             _tokenID, 
             _addr, 
             _amount);
@@ -456,21 +391,13 @@ contract CSRContract is Ownable, DateTime {
         onlyContract
         {
         
-        uint investorType = KYC.returnInvestorType(_addr);
-        
-        SecuritiesRegister[_tokenID].InvestorInformation[_addr].balanceOf -= _amount;
-            
-        if (investorType == 0) {
-            SecuritiesRegister[_tokenID].investorstructure.AmountSingleEntry -= _amount;
-        }
-        
-        if (investorType == 1) {
-            SecuritiesRegister[_tokenID].investorstructure.AmountCollectiveEntry -= _amount;
+        if (_addr != SecuritiesRegister[_tokenID].issuerAddress) {
+            SecuritiesRegister[_tokenID].InvestorInformation[_addr].balanceOf -= _amount;
         }
         
         emit ChangeOfRegisterInvestorBalance (
             block.timestamp, 
-            msg.sender, 
+            _msgSender(), 
             _tokenID, 
             _addr, 
             _amount);
@@ -495,7 +422,7 @@ contract CSRContract is Ownable, DateTime {
         TermSheetProposal[_tokenID].wkn = _wkn;
         TermSheetProposal[_tokenID].itin = _itin;
         
-        if (msg.sender == owner()) {
+        if (_msgSender() == owner()) {
             approveChangeTokenTermSheet(_tokenID, _summary);
         }
     }

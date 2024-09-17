@@ -1,8 +1,8 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier:MIT
 
 pragma solidity ^0.8.0;
 
-import "./@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "./BondToken.sol";
 import "./SecuritiesRegister.sol";
 
@@ -10,6 +10,8 @@ contract KycContract is Ownable {
     
     Bond BTC;
     CSRContract CSR;
+
+    constructor() Ownable(_msgSender()) {}
     
     function setBondTokenContract(
         address _addr)
@@ -28,7 +30,7 @@ contract KycContract is Ownable {
     
     modifier onlyKycProvider {
         require(
-            KycProvider[msg.sender] == true, 
+            KycProvider[_msgSender()] == true, 
             "You are not authorized!"
             );
         _;
@@ -36,7 +38,7 @@ contract KycContract is Ownable {
     
     modifier onlyContract {
         require(
-            BTC == Bond(msg.sender) || CSR == CSRContract(msg.sender), 
+            BTC == Bond(_msgSender()) || CSR == CSRContract(_msgSender()), 
             "Only a Contract can use this function!"
             );
         _;

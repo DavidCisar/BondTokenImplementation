@@ -1,11 +1,13 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.0;
 
-import "./@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "./BondToken.sol";
 
 contract DocumentContract is Ownable {
+
+    constructor() Ownable(_msgSender()) {}
     
     event DocumentUploaded(uint _timestamp, string _company, uint16 _year, bytes32 _documentHash);
     

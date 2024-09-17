@@ -1,23 +1,19 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.0;
 
-import "./@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
-import "./@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Burnable.sol";
-import "./@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "./@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
+import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Burnable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "./KnowYourCustomer.sol";
 import "./Documents.sol";
 import "./SecuritiesRegister.sol";
 
-contract Bond is ERC1155 {
+contract Bond is ERC1155, Ownable {
 
-    constructor() 
-        
-        ERC1155("https://github.com/DavidCisar/Forschungsprojekt/{id}.json")
-        
-        { 
-        IssuerAddress = msg.sender;
+    constructor() ERC1155("https://github.com/DavidCisar/Forschungsprojekt/{id}.json") Ownable(_msgSender()) { 
+        issuerAddress = _msgSender();
     }  
 
     event TokenMinted (
@@ -111,29 +107,21 @@ contract Bond is ERC1155 {
 
     modifier onlyRegulator {
         require(
-            msg.sender == Regulator, 
+            _msgSender() == regulator, 
             "Only Regulator!"
             );
         _;
     }
-
-    modifier onlyOwner {
-        require(
-            msg.sender == IssuerAddress, 
-            "Only Owner!"
-            );
-        _;
-    }
     
-    address Regulator;
-    address IssuerAddress;
+    address public regulator;
+    address public issuerAddress;
     
     function setRegulator(
         address _regulator) 
         public
         onlyOwner
         {
-        Regulator = _regulator;
+        regulator = _regulator;
     }
     
     mapping(uint => TokenDataStruct) private TokenData;
@@ -157,9 +145,9 @@ contract Bond is ERC1155 {
         mapping(address => bool) isInvestor;
     }
 
-    uint public requestID;
+    uint public requestID = 0;
 
-    mapping(uint => ForcedTransferRequest) private RegulatoryRequests;
+    mapping(uint => ForcedTransferRequest) public RegulatoryRequests;
 
     struct ForcedTransferRequest{
         uint tokenID;
@@ -197,7 +185,7 @@ contract Bond is ERC1155 {
         {
     
         require(
-            CSR.dataComplete(_tokenID),
+            CSR.isDataComplete(_tokenID),
             "CSR not initialized!"
             );
         
@@ -210,7 +198,7 @@ contract Bond is ERC1155 {
         TokenData[_tokenID].maturityDate) = CSR.returnTokenDataTwo(_tokenID);
         
         _mint(
-            IssuerAddress, 
+            issuerAddress, 
             _tokenID, 
             TokenData[_tokenID].volume, 
             ""
@@ -292,27 +280,22 @@ contract Bond is ERC1155 {
 
     function payCoupon(
         uint _tokenID,
-        address payable _to,
-        uint256 _valueInWEI)
+        address payable _to)
         public
         payable
         onlyOwner
         {
-        require(
-            msg.value == _valueInWEI,
-            "Check msg.value"
-        );
         
-        _to.transfer(_valueInWEI);
+        _to.transfer(msg.value);
         
         emit CouponPaid(
             _tokenID, 
             _to, 
-            _valueInWEI, 
+            msg.value, 
             block.timestamp);
     }
 
-    mapping(uint => mapping(address => uint256)) private BuyBack;
+    mapping(uint => mapping(address => uint256)) public BuyBack;
 
     function redemptionBuyBack(
         address _from,
@@ -329,11 +312,11 @@ contract Bond is ERC1155 {
             "ERC1155: caller is not owner nor approved"
         );
 
-        uint balance = CSR.balanceOf(_tokenID, _from);
+        uint balance = balanceOf(_from, _tokenID);
         
         _safeTransferFrom(
             _from, 
-            IssuerAddress, 
+            issuerAddress, 
             _tokenID, 
             balance, 
             "[]"
@@ -341,7 +324,7 @@ contract Bond is ERC1155 {
             
         CSR.updateCSRbyContractSell(
             _tokenID, 
-            msg.sender,
+            _msgSender(),
             balance
             );
             
@@ -369,7 +352,7 @@ contract Bond is ERC1155 {
             * (10**18);    
     }
 
-    function payRedemtion(
+    function payRedemption(
         uint _tokenID,
         address payable _to)
         public
@@ -403,8 +386,8 @@ contract Bond is ERC1155 {
         public
         onlyOwner
         {
-        uint256 balance = balanceOf(msg.sender, _tokenID);
-        _burn(msg.sender, _tokenID, balance);
+        uint256 balance = balanceOf(_msgSender(), _tokenID);
+        _burn(_msgSender(), _tokenID, balance);
         TokenData[_tokenID].burnedAmount += balance;
     }
 
@@ -440,7 +423,7 @@ contract Bond is ERC1155 {
             "TS closed."
         );
         require(
-            KYC.kycCompleted(msg.sender),
+            KYC.kycCompleted(_msgSender()),
             "Not whitelisted."
         );
         require(
@@ -448,32 +431,32 @@ contract Bond is ERC1155 {
             "Check msg.value"
         );
         
-        payable(IssuerAddress).transfer(msg.value);
+        payable(issuerAddress).transfer(msg.value);
         
         _safeTransferFrom(
-            IssuerAddress, 
-            msg.sender, 
+            issuerAddress, 
+            _msgSender(), 
             _tokenID, 
             _amount, 
             "[]"
             );
         
-        if (!Investor[_tokenID].isInvestor[msg.sender]) {
-            Investor[_tokenID].Investors.push(msg.sender);
-            Investor[_tokenID].isInvestor[msg.sender] = true;
+        if (!Investor[_tokenID].isInvestor[_msgSender()]) {
+            Investor[_tokenID].Investors.push(_msgSender());
+            Investor[_tokenID].isInvestor[_msgSender()] = true;
         }
         
         TokenData[_tokenID].issuedAmount += _amount;
         
         CSR.updateCSRbyContractBuy(
             _tokenID, 
-            msg.sender,
+            _msgSender(),
             _amount
             );
         
         emit TokenBought(
             _tokenID, 
-            msg.sender, 
+            _msgSender(), 
             _amount, 
             block.timestamp
             );
@@ -493,39 +476,39 @@ contract Bond is ERC1155 {
             "TS closed."
         );
         require(
-            KYC.kycCompleted(msg.sender),
+            KYC.kycCompleted(_msgSender()),
             "Not whitelisted!"
         );
         
-        address from = msg.sender;
+        address from = _msgSender();
         uint256 ptp = returnPriceToPayEUR(_tokenID, _amount);
         
-        _stableCoin.transferFrom(from, IssuerAddress, ptp);
+        _stableCoin.transferFrom(from, issuerAddress, ptp);
         
         _safeTransferFrom(
-            IssuerAddress, 
-            msg.sender, 
+            issuerAddress, 
+            _msgSender(), 
             _tokenID, 
             _amount, 
             "[]"
             );
         
-        if (!Investor[_tokenID].isInvestor[msg.sender]) {
-            Investor[_tokenID].Investors.push(msg.sender);
-            Investor[_tokenID].isInvestor[msg.sender] = true;
+        if (!Investor[_tokenID].isInvestor[_msgSender()]) {
+            Investor[_tokenID].Investors.push(_msgSender());
+            Investor[_tokenID].isInvestor[_msgSender()] = true;
         }
         
         TokenData[_tokenID].issuedAmount += _amount;
         
         CSR.updateCSRbyContractBuy(
             _tokenID, 
-            msg.sender, 
+            _msgSender(), 
             _amount
             );
         
         emit TokenBought(
             _tokenID, 
-            msg.sender, 
+            _msgSender(), 
             _amount, 
             block.timestamp
             );
@@ -572,60 +555,59 @@ contract Bond is ERC1155 {
         }
         
         CSR.updateCSRbyContractBuy(id, to, amount); 
-        CSR.updateCSRbyContractSell(id, msg.sender, amount);
+        CSR.updateCSRbyContractSell(id, _msgSender(), amount);
         
         emit TokenTransfered(
             id, 
             to, 
-            msg.sender, 
+            _msgSender(), 
             amount, 
             block.timestamp
             );
         
     }
 
-     function requestForcedTransfer(
-         uint _tokenID,
-         address _investor,
-         uint _amount)
-         public
-         onlyRegulator
-         {
-         RegulatoryRequests[requestID].tokenID = _tokenID;
-         RegulatoryRequests[requestID].investor = _investor;
-         RegulatoryRequests[requestID].amount = _amount;
-         requestID ++;
-         
-         emit RequestForcedTransfer(
-             requestID-1, 
-             _tokenID, 
-             _investor, 
-             _amount
-             );
-     }
+    function requestForcedTransfer(
+        uint _tokenID,
+        address _investor,
+        uint _amount)
+        public
+        onlyRegulator
+        {
+        RegulatoryRequests[requestID].tokenID = _tokenID;
+        RegulatoryRequests[requestID].investor = _investor;
+        RegulatoryRequests[requestID].amount = _amount;
+
+        emit RequestForcedTransfer(
+            requestID, 
+            _tokenID, 
+            _investor, 
+            _amount
+            );
+
+        requestID++;
+    }
     
     function forcedTransfer(
         uint _id)
         public
-        onlyOwner
+        onlyRegulator
         {
-        require(
-            RegulatoryRequests[_id].executed == false
-            );
-        
+            
+        require(RegulatoryRequests[_id].executed == false, "Request already executed");
+
+        RegulatoryRequests[_id].executed = true;
         uint _tokenID = RegulatoryRequests[_id].tokenID;
         uint _amount = RegulatoryRequests[_id].amount;
         address _investor = RegulatoryRequests[_id].investor;
         
-        setEmergencyApproval(_investor, true);
-        safeTransferFrom(_investor, IssuerAddress, _tokenID, _amount, "[]");
-        setEmergencyApproval(_investor, false);
+        _safeTransferFrom(_investor, issuerAddress, _tokenID, _amount, "[]");
         
         CSR.updateCSRbyContractSell(_tokenID, _investor, _amount);
         
         emit ForcedTokenTransfered(
             _tokenID, 
-            IssuerAddress, 
+            issuerAddress, 
             _investor, 
             _amount, 
             block.timestamp
