@@ -78,7 +78,7 @@ To deploy the smart contracts to a local blockchain, follow these steps in the t
 
       `npx hardhat run scripts/deploy.ts --network localhost`
 
-    - This command will deploy the contracts defined in the scripts/sample-script.js file to the local Hardhat node running at localhost.
+    - This command will deploy the contracts defined in the scripts/deploy.ts file to the local Hardhat node running at localhost.
 
 3. **Verify Deployment**:
     - In the terminal where the Hardhat node is running, you should see transaction details confirming that the contracts were successfully deployed. You can also interact with the contracts using the provided accounts and private keys.
