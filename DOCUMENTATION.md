@@ -97,7 +97,7 @@ The CSR Contract serves as the central ledger for bond issuance and investor inf
 - Primary Market: The contract ensures instant delivery vs. payments (DvP) for new issuances.
 - Secondary Market: Investors can transfer bond tokens, with ownership changes reflected in the Crypto Securities Registry (CSR contract). 
   
-  <i>**ATTENTION:**</i> These transfers only reflect asset transfers. Thus, only one part of the exchange is completed inside one transaction. They do not include payments. To achieve this, blockchain-based decentralized Exchanges or Over-the-Counter Exchanges have the ability to reflect both transfers in a single transaction, thhus allowing instant DvP.
+  <i>**ATTENTION:**</i> Secondary market transfers only reflect asset transfers. Thus, only one part of the exchange is completed inside one transaction. They do not include payments. To achieve this, blockchain-based decentralized Exchanges or Over-the-Counter Exchanges have the ability to reflect both transfers in a single transaction, thhus allowing instant DvP.
 
 ### 4. Corporate Actions
 - Issuers can execute corporate actions such as interest payments and bond buybacks on-chain.
